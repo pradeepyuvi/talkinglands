@@ -1,0 +1,139 @@
+Transform: AWS::Serverless-2016-10-31
+
+Parameters:
+  Stage:
+    Type: String
+  Domain:
+    Type: String
+    Description: "Name of the custom domain"
+  BasePath:
+    Type: String
+    Description: "Base path for the API"
+  Url:
+    Type: String
+    Description: "API Url for erp integrations"
+
+  ValidateUrl:
+    Type: String
+    Description: "API Url for erp integrations"
+  
+  ApiAuthToken:
+    Type: String
+    Description: "Name of the domain you want to use, eg: www.example.com"
+
+Globals:
+  Function:
+    Tracing: Active
+    Environment:
+      Variables:
+        Url: !Ref eUrl
+        ApiAuthToken: !Ref ApiAuthToken
+        ValidateUrl: !Ref ValidateUrl
+        region_name: !Sub "${AWS::Region}"
+
+  Api:
+    TracingEnabled: true
+    OpenApiVersion: 3.0.1
+
+Resources:
+  SpatialApiGateway:
+    Type: AWS::Serverless::Api
+    Properties:
+      Name: !Sub "${Stage}-spatial-api"
+      StageName: !Sub "${Stage}"
+      DefinitionBody:
+        openapi: "3.0.1"
+        info:
+          title: SpatialApi
+          version: "1.0.0"
+        paths:
+          /multipoint:
+            post:
+              requestBody:
+                required: true
+                content:
+                  application/json:
+                    schema:
+                      $schema: http://json-schema.org/draft-04/schema#
+                      type: object
+                      properties:
+                        spatialNumber:
+                          type: string
+                        
+                            required:
+                              - spatialNumber
+
+              responses:
+                '201':
+                  description: 'Success'
+              x-amazon-apigateway:
+                type: aws_proxy
+                httpMethod: POST
+                uri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${multipoint.Arn}/invocations
+          /multipolygon:
+            post:
+              requestBody:
+                required: true
+                content:
+                  application/json:
+                    schema:
+                      $schema: http://json-schema.org/draft-04/schema#
+                      type: object
+                      properties:
+                        spatialNumber:
+                          type: string
+                        
+                            required:
+                              - spatialNumber
+
+              responses:
+                '201':
+                  description: 'Success'
+              x-amazon-apigateway:
+                type: aws_proxy
+                httpMethod: POST
+                uri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${multipolygon.Arn}/invocations
+  SpatialAPIMapping:
+      Type: 'AWS::ApiGateway::BasePathMapping'
+      Properties:
+        BasePath: !Ref BasePath
+        DomainName: !Ref Domain
+        RestApiId: !Ref SpatialApiGateway
+        Stage: !Ref SpatialApiGateway.Stage
+
+
+
+  PythonLayer:
+        Type: AWS::Serverless::LayerVersion
+        Properties:
+            LayerName: python-dependencies
+            Description: Dependencies for python
+            ContentUri: libs
+            CompatibleRuntimes:
+              - python3.9
+
+
+  multipoint:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub "${Stage}-multipoint"
+      CodeUri: functions/multiplepoint
+      Handler: multipoint.lambda_handler
+      Timeout: 120
+      Tracing: Active
+      Runtime: python3.9
+      Layers:
+              - !Ref PythonLayer
+
+  multipolygon:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub "${Stage}-multipolygon"
+      CodeUri: functions/multiplepolygon
+      Handler: multipolygon.lambda_handler
+      Timeout: 120
+      Tracing: Active
+      Runtime: python3.9
+      Role: !GetAtt ApInvoiceGenericLambdaRole.Arn
+      Layers:
+              - !Ref PythonLayer
