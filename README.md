@@ -1,6 +1,6 @@
 # Talkinglands
 
-Created 2 lambdas for operational logics as per needed condidtion and modify the relevant specifications, use the postman to send a request using apigateway or postman and take that request from the event and perform the logics.
+Created 2 lambdas for operational logics as per needed conditions and modified the relevant specifications, used the postman to send a request using API gateway, or the postman took that request from the event and performed the logics.
 
 Deploy the stack using cloud formation
 
