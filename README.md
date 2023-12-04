@@ -1,4 +1,4 @@
-# talkinglands
+# Talkinglands
 
 Created 2 lambdas for operational logics as per needed condidtion and modify the relevant specifications, use the postman to send a request using apigateway or postman and take that request from the event and perform the logics.
 
